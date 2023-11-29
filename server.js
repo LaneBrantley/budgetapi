@@ -41,7 +41,7 @@ app.post('/signup', async (req, res) => {
     connection.connect();
     console.log(pwd);
     console.log(username);
-    connection.query('INSERT INTO User (username, password, signupdate) VALUES (?, ?, ?)', [username, pwd, date], function (error, results, fields) {
+    connection.query('INSERT INTO User (username, password, date) VALUES (?, ?, ?)', [username, pwd, date], function (error, results, fields) {
         connection.end();
         if (error) throw error;
         res.json(results);
