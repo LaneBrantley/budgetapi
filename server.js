@@ -4,7 +4,7 @@ const mysql = require('mysql');
 const bcrypt = require('bcrypt-nodejs');
 const saltRounds = 10;
 
-const port = process.env.port || 3001;
+const port = process.env.port || 3000;
 const app = express();
 app.use(express.json());
 app.use(cors());
