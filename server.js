@@ -1,110 +1,132 @@
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql');
-const bcrypt = require('bcrypt-nodejs');
-const saltRounds = 10;
+const bcrypt = require('bcryptjs');
+var salt = bcrypt.genSaltSync(10);
 
-const port = process.env.port || 3000;
+const port = process.env.port || 3001;
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-var connection = mysql.createConnection({
+//Pool for connections
+var pool = mysql.createPool({
+    connectionLimit : 10,
     host : 'sql5.freemysqlhosting.net',
     user : 'sql5666250',
     password : 'aHixxtJFHM',
     database : 'sql5666250'
 });
 
+//Encrypts passwords
 async function encryptPassword(password) {
+  return bcrypt.hash(password, salt);
+}
+
+//Turns signup date into sql format
+function transformDate(date) {
+    return date.toISOString().slice(0, 19).replace('T', ' ');
+};
+
+function checkDuplicateUser(username) {
   return new Promise((resolve, reject) => {
-    bcrypt.hash(password, saltRounds, (err, hash) => {
-      if (err) {
-        reject(err);
+    pool.query('SELECT * FROM User WHERE username = ?', [username], function (error, results, fields) {
+      if (error) {
+        console.error(error);
+        reject(error);
       } else {
-        resolve(hash);
+        resolve(results.length);
       }
     });
   });
 }
 
-function transformDate(date) {
-    return date.toISOString().slice(0, 19).replace('T', ' ');
-};
-
+//Singup function for users
 app.post('/signup', async (req, res) => {
-    const { username, password } = req.body; 
-    if (!username || !password) {
-        res.status(400).json({ error: 'Both username and password are required' });
-        return;
-    }    
-    const hashedPassword = await encryptPassword(password); 
+  const { username, password } = req.body; 
+  if (!username || !password) {
+    res.status(400).json({ error: 'Both username and password are required' });
+    return;
+  }
+  try {
+    // Check if the username already sexist
+    const count = await checkDuplicateUser(username);
+    if (count > 0) {
+      res.status(403).json({ error: 'Username is already taken' }); 
+      return;
+    }
+    // If the username is unique, proceed with the insertion
+    const hashedPassword = await encryptPassword(password);
     const date = transformDate(new Date());
-    connection.connect();
-    connection.query('INSERT INTO User (username, password, date) VALUES (?, ?, ?)', [username, hashedPassword, date], function (error, results, fields) {
-        connection.end();
-        if (error) throw error;
-        res.json(results);
-    });
+
+    const insertUserQuery = 'INSERT INTO User (username, password, date) VALUES (?, ?, ?)';
+    pool.query(insertUserQuery, [username, hashedPassword, date]);
+
+    res.json({ success: 'User created successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 app.post('/login', async (req, res) => {
+
   const { username, password } = req.body;
   if (!username || !password) {
       res.status(400).json({ error: 'Both username and password are required' });
       return;
   }   
 
-  try{
-    console.log(await encryptPassword(password));
-  } catch {
-    console.log("Went wrong");
-  }
-
   try {
-      const hashedPassword = await encryptPassword(password);
-      connection.connect();
+    pool.getConnection(function(err, connection) {
+
+      if (err) throw err;
 
       connection.query(
-          'SELECT * FROM User WHERE username = ? and password = ?',
-          [username, hashedPassword],
-          function (error, results, fields) {
-              connection.end();
-              if (error) {
-                  console.log(error);
-                  res.status(500).json({ error: 'Internal Server Error' });
-                  return;
-              }
-
-              if (results.length > 0) {
-                  res.json({ success: 'Login successful' });
-              } else {
-                  res.status(401).json({ error: 'Invalid username or password' });
-              }
+        'SELECT * FROM User WHERE username = ?',
+        [username],
+        async function (error, results, fields) {
+          connection.release();
+          if (error) {
+            console.log(error);
+            res.status(500).json({ error: 'Internal Server Error' });
+            return;
           }
-      );
-  } catch (error) {
-      console.log(error);
-      res.status(500).json({ error: 'Internal Server Error' });
+
+          if (results.length > 0) {
+            const user = results[0];
+            const hashedPassword = user.password;
+            const isPasswordMatch = await bcrypt.compare(password, hashedPassword);
+            if (isPasswordMatch) {
+              res.json({ success: 'Login successful' });
+            } else {
+              res.status(401).json({ error: 'Invalid username or password' });
+          }
+        } 
+      }
+    ); 
+  })  
+  } catch(err) {
+    console.log(err);
   }
 });
 
 app.get('/budget', async (req, res) => {
-    connection.connect();
 
-    connection.query('SELECT * FROM Budget', function (error, results, fields) {
-        connection.end();
-        if (error) throw error;
-        res.json(results);
-    });
-});
+  try {
+    pool.getConnection(function(err, connection) {
+      if (err) throw err;
 
-app.get('/', async (req, res) => {
-  connection.connect();
-
-  console.log("Received");
+      connection.query('SELECT * FROM Budget', function (error, results, fields) {
+        connection.release();
+          if (error) throw error;
+          res.json(results);
+      });
+    })
+  }
+  catch(err) {console.log(err)};
 });
 
 app.listen(port, () => {
-    console.log(`Server on port ${port}`)
+  console.log(`Server on port ${port}`)
 });
