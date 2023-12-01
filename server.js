@@ -58,7 +58,7 @@ app.post('/login', async (req, res) => {
   try{
     console.log(await encryptPassword(password));
   } catch {
-    console.log(error);
+    console.log("Went wrong");
   }
 
   try {
