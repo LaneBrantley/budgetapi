@@ -55,6 +55,12 @@ app.post('/login', async (req, res) => {
       return;
   }   
 
+  try{
+    console.log(await encryptPassword(password));
+  } catch {
+    console.log(error);
+  }
+
   try {
       const hashedPassword = await encryptPassword(password);
       connection.connect();
