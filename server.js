@@ -58,6 +58,12 @@ app.get('/budget', async (req, res) => {
     });
 });
 
+app.get('/', async (req, res) => {
+  connection.connect();
+
+  console.log("Received");
+});
+
 app.listen(port, () => {
     console.log(`Server on port ${port}`)
 });
