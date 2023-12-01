@@ -4,7 +4,7 @@ const mysql = require('mysql');
 const bcrypt = require('bcryptjs');
 var salt = bcrypt.genSaltSync(10);
 
-const port = process.env.port || 3000;
+const port = process.env.port || 3001;
 const app = express();
 app.use(express.json());
 app.use(cors());
@@ -50,7 +50,7 @@ app.post('/signup', async (req, res) => {
   }
   try {
     // Check if the username already sexist
-    const count = await checkDuplicateUser(username);
+    const count = checkDuplicateUser(username);
     if (count > 0) {
       res.status(403).json({ error: 'Username is already taken' }); 
       return;
