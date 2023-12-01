@@ -1,11 +1,13 @@
 const express = require('express');
+const cors = require('cors');
 const mysql = require('mysql');
 const bcrypt = require('bcrypt-nodejs');
 const saltRounds = 10;
 
-const port = process.env.port || 3000;
+const port = process.env.port || 3001;
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 var connection = mysql.createConnection({
     host : 'sql5.freemysqlhosting.net',
@@ -49,7 +51,10 @@ app.post('/signup', async (req, res) => {
 });
 
 app.post('/login', async (req, res) => {
-  console.log("Received");
+
+  const {username, password} = req.body;
+
+  console.log(req.body);
 });
 
 app.get('/budget', async (req, res) => {
