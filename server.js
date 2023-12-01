@@ -49,35 +49,38 @@ app.post('/signup', async (req, res) => {
 });
 
 app.post('/login', async (req, res) => {
-
-  const {username, password} = req.body;
+  const { username, password } = req.body;
   if (!username || !password) {
-    res.status(400).json({ error: 'Both username and password are required' });
-    return;
+      res.status(400).json({ error: 'Both username and password are required' });
+      return;
   }   
 
-  const hashedPassword = await encryptPassword(password);
-  connection.connect();
+  try {
+      const hashedPassword = await encryptPassword(password);
+      connection.connect();
 
-  connection.query(
-    'SELECT * FROM User WHERE username = ? and password = ?',
-    [username, hashedPassword],
-    function (error, results, fields) {
-      connection.end();
-      if (error) {
-        console.log(error);
-        res.status(500).json({ error: "Internal Server Error"})
-        return;
-      }
+      connection.query(
+          'SELECT * FROM User WHERE username = ? and password = ?',
+          [username, hashedPassword],
+          function (error, results, fields) {
+              connection.end();
+              if (error) {
+                  console.log(error);
+                  res.status(500).json({ error: 'Internal Server Error' });
+                  return;
+              }
 
-      if (results.length > 0) {
-        res.json({ success: "Login successful"});
-      } else {
-        res.status(401).json({ error: 'Invalid username or password' });
-      }
-    }
-  )
-
+              if (results.length > 0) {
+                  res.json({ success: 'Login successful' });
+              } else {
+                  res.status(401).json({ error: 'Invalid username or password' });
+              }
+          }
+      );
+  } catch (error) {
+      console.log(error);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 app.get('/budget', async (req, res) => {
