@@ -33,17 +33,15 @@ function transformDate(date) {
 };
 
 app.post('/signup', async (req, res) => {
-    const { username, password } = req.query; //Did this so that it can be done through url params
+    const { username, password } = req.body; 
     if (!username || !password) {
         res.status(400).json({ error: 'Both username and password are required' });
         return;
     }    
-    const pwd = await encryptPassword(password); 
+    const hashedPassword = await encryptPassword(password); 
     const date = transformDate(new Date());
     connection.connect();
-    console.log(pwd);
-    console.log(username);
-    connection.query('INSERT INTO User (username, password, date) VALUES (?, ?, ?)', [username, pwd, date], function (error, results, fields) {
+    connection.query('INSERT INTO User (username, password, date) VALUES (?, ?, ?)', [username, hashedPassword, date], function (error, results, fields) {
         connection.end();
         if (error) throw error;
         res.json(results);
@@ -53,8 +51,33 @@ app.post('/signup', async (req, res) => {
 app.post('/login', async (req, res) => {
 
   const {username, password} = req.body;
+  if (!username || !password) {
+    res.status(400).json({ error: 'Both username and password are required' });
+    return;
+  }   
 
-  console.log(req.body);
+  const hashedPassword = await encryptPassword(password);
+  connection.connect();
+
+  connection.query(
+    'SELECT * FROM User WHERE username = ? and password = ?',
+    [username, hashedPassword],
+    function (error, results, fields) {
+      connection.end();
+      if (error) {
+        console.log(error);
+        res.status(500).json({ error: "Internal Server Error"})
+        return;
+      }
+
+      if (results.length > 0) {
+        res.json({ success: "Login successful"});
+      } else {
+        res.status(401).json({ error: 'Invalid username or password' });
+      }
+    }
+  )
+
 });
 
 app.get('/budget', async (req, res) => {
