@@ -1,6 +1,6 @@
 const express = require('express');
 const mysql = require('mysql');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcrypt-nodejs');
 const saltRounds = 10;
 
 const port = process.env.port || 3000;
