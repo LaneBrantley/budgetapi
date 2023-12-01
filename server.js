@@ -50,7 +50,7 @@ app.post('/signup', async (req, res) => {
   }
   try {
     // Check if the username already sexist
-    const count = checkDuplicateUser(username);
+    const count = await checkDuplicateUser(username);
     if (count > 0) {
       res.status(403).json({ error: 'Username is already taken' }); 
       return;
