@@ -15,16 +15,16 @@ var connection = mysql.createConnection({
 });
 
 async function encryptPassword(password) {
-    return new Promise((resolve, reject) => {
-      bcrypt.hash(password, saltRounds, (err, hash) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(hash);
-        }
-      });
+  return new Promise((resolve, reject) => {
+    bcrypt.hash(password, saltRounds, (err, hash) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(hash);
+      }
     });
-  }
+  });
+}
 
 function transformDate(date) {
     return date.toISOString().slice(0, 19).replace('T', ' ');
@@ -48,6 +48,10 @@ app.post('/signup', async (req, res) => {
     });
 });
 
+app.post('/login', async (req, res) => {
+  console.log("Received");
+});
+
 app.get('/budget', async (req, res) => {
     connection.connect();
 
@@ -67,4 +71,3 @@ app.get('/', async (req, res) => {
 app.listen(port, () => {
     console.log(`Server on port ${port}`)
 });
-//
