@@ -41,7 +41,7 @@ function checkDuplicateUser(username) {
   });
 }
 
-//Singup function for users
+//Signup function for users
 app.post('/signup', async (req, res) => {
   const { username, password } = req.body; 
   if (!username || !password) {
@@ -69,15 +69,16 @@ app.post('/signup', async (req, res) => {
   }
 });
 
+//Login function
 app.post('/login', async (req, res) => {
 
   const { username, password } = req.body;
-  if (!username || !password) {
+  if (!username || !password) { //Needs both username and password
       res.status(400).json({ error: 'Both username and password are required' });
       return;
   }   
 
-  try {
+  try { //Gets connection and finds user
     pool.getConnection(function(err, connection) {
 
       if (err) throw err;
@@ -93,14 +94,14 @@ app.post('/login', async (req, res) => {
             return;
           }
 
-          if (results.length > 0) {
+          if (results.length > 0) { //If there is a user with username
             const user = results[0];
             const hashedPassword = user.password;
             const isPasswordMatch = await bcrypt.compare(password, hashedPassword);
-            if (isPasswordMatch) {
+            if (isPasswordMatch) { //If passwords match
               res.json({ success: 'Login successful' });
-            } else {
-              res.status(401).json({ error: 'Invalid username or password' });
+            } else { //If password does not match
+              res.status(401).json({ error: 'Invalid password' });
           }
         } 
       }
