@@ -1,5 +1,6 @@
 //Final Backend Server
 const express = require('express');
+const compression = require('compression');
 const cors = require('cors');
 const mysql = require('mysql');
 const bcrypt = require('bcryptjs');
@@ -9,6 +10,7 @@ var salt = bcrypt.genSaltSync(10);
 
 const port = process.env.port || 3000;
 const app = express();
+app.use(compression()); 
 app.use(express.json());
 app.use(cors());
 
@@ -77,6 +79,15 @@ app.post('/signup', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+app.post('/refresh', async(req, res) => {
+  const token = jwt.sign({ id: user.id, username: user.username }, secretKey, {expiresIn: 60}); //Json web token expires in 60 seconds
+  res.json({
+    success: 'Refreshed',
+    err: null,
+    token
+  })
+})
 
 //Login function
 app.post('/login', async (req, res) => {
