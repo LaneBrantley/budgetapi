@@ -80,13 +80,22 @@ app.post('/signup', async (req, res) => {
   }
 });
 
-app.post('/refresh', async(req, res) => {
-  const token = jwt.sign({ id: user.id, username: user.username }, secretKey, {expiresIn: 60}); //Json web token expires in 60 seconds
-  res.json({
-    success: 'Refreshed',
-    err: null,
-    token
-  })
+app.post('/refresh', async(res) => {
+  const { username } = req.body;
+  if (!username) {
+    res.stats(400).json({ error: 'username required' });
+    return;
+  }
+  try {
+    const token = jwt.sign({ username: username }, secretKey, {expiresIn: 60}); //Json web token expires in 60 seconds
+    res.json({
+      success: 'Refreshed',
+      err: null,
+      token
+    })
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
 })
 
 //Login function
