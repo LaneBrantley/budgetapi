@@ -87,11 +87,11 @@ app.post('/refresh', async (req, res) => {
     return;
   }
   try {
-    const token = jwt.sign({ username: username }, secretKey, {expiresIn: 60}); //Json web token expires in 60 seconds
+    const expiresIn = 60;
       res.json({
         success: 'Refreshed',
         err: null,
-        token
+        expiresIn
       })
   } catch (error) {
     res.status(500).json({ error: 'Internal Server Error' });
