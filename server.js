@@ -1,7 +1,10 @@
+//Final Backend Server
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const {expressjwt: exjwt } = require('express-jwt');
 var salt = bcrypt.genSaltSync(10);
 
 const port = process.env.port || 3000;
@@ -9,13 +12,20 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+//Token generator
+const secretKey = 'my secret key';
+exjwt({
+  secret: secretKey,
+  algorithms: ['HS256']
+})
+
 //Pool for connections
 var pool = mysql.createPool({
     connectionLimit : 10,
     host : 'sql5.freemysqlhosting.net',
-    user : 'sql5666250',
-    password : 'aHixxtJFHM',
-    database : 'sql5666250'
+    user : 'sql5668316',
+    password : 'cV4jBcmzBw',
+    database : 'sql5668316'
 });
 
 //Encrypts passwords
@@ -64,7 +74,6 @@ app.post('/signup', async (req, res) => {
 
     res.json({ success: 'User created successfully' });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -89,17 +98,23 @@ app.post('/login', async (req, res) => {
         async function (error, results, fields) {
           connection.release();
           if (error) {
-            console.log(error);
             res.status(500).json({ error: 'Internal Server Error' });
             return;
           }
 
           if (results.length > 0) { //If there is a user with username
             const user = results[0];
+            const expiresIn = 60;
             const hashedPassword = user.password;
             const isPasswordMatch = await bcrypt.compare(password, hashedPassword);
             if (isPasswordMatch) { //If passwords match
-              res.json({ success: 'Login successful' });
+              const token = jwt.sign({ id: user.id, username: user.username }, secretKey, {expiresIn: 60}); //Json web token expires in 60 seconds
+              res.json({ 
+                success: 'Login successful',
+                err: null,
+                token,
+                expiresIn
+             });
             } else { //If password does not match
               res.status(401).json({ error: 'Invalid password' });
           }
@@ -112,21 +127,68 @@ app.post('/login', async (req, res) => {
   }
 });
 
-app.get('/budget', async (req, res) => {
+app.post('/makebudget', async(req, res) => {
+  const {username, title, budget, tags} = req.body;
+  if (!username) {
+    res.status(400).json({ error: 'Username required.' });
+      return;
+  }
 
   try {
     pool.getConnection(function(err, connection) {
       if (err) throw err;
 
-      connection.query('SELECT * FROM Budget', function (error, results, fields) {
+      connection.query('INSERT INTO Budget (username, title, budget, tags) VALUES (?, ?, ?, ?)', 
+      [username, title, budget, tags],
+      async function(error, results, fields) {
         connection.release();
-          if (error) throw error;
-          res.json(results);
-      });
+        if (error) {
+          res.status(500).json({ error: 'Internal Server Error' });
+          return;
+        }
+
+        res.json({ success: 'Budget item created.' });
+      })
     })
+  } catch(error) {
+    res.status(500).json({ error: 'Internal Server Error' });
   }
-  catch(err) {console.log(err)};
-});
+})
+
+app.post('/getbudget', async(req, res) => {
+  const {username} = req.body;
+  if (!username) {
+    res.status(400).json({ error: 'Username required.' });
+      return;
+  }
+
+  try {
+    pool.getConnection(function(err, connection) {
+      if (err) throw err;
+
+      connection.query('SELECT * FROM Budget WHERE username = ?', 
+      [username],
+      async function(error, results, fields) {
+        connection.release();
+        if (error) {
+          res.status(500).json({ error: 'Internal Server Error' });
+          return;
+        }
+
+        if (results.length > 0) {
+          console.log(results);
+          res.json(results);
+        }
+        else {
+          console.log("No budget information found");
+        }
+      }
+      )
+    })
+  } catch{
+
+  }
+})
 
 app.listen(port, () => {
   console.log(`Server on port ${port}`)
